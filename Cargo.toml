@@ -1,0 +1,15 @@
+[package]
+name = "bitsquid_re_tools"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+members = [
+    "bitsquid_unbundler",
+    "luajit_decompiler",
+]
+
+[dependencies]
+bitsquid_unbundler = { version = "1.1.0", path = "bitsquid_unbundler" }
+luajit_decompiler = { version = "0.1.0", path = "luajit_decompiler" }
+clap = { version = "4.2.2", features = ["cargo"] }
