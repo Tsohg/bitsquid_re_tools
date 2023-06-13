@@ -1,24 +1,29 @@
-use std::fs::File;
-use std::io::prelude::*;
-use std::path::Path;
-use crate::unbundled_file::UnbundledFile;
+use re_core::{unbundled_file::UnbundledFile, byte_stream::ByteStream};
 
-pub struct FileWriter {}
-impl FileWriter {
-    pub fn write_files(output_directory: &str, files: Vec<UnbundledFile>) {
-        for file in files.iter() {
-            let file_path = format!("{}\\{:#x}.{}", output_directory, file.path, FileWriter::lookup_extension_name(file.extension));
-            FileWriter::write_file(&file_path, file);
+pub struct UnbundledFileCreator{}
+impl UnbundledFileCreator {
+    pub fn create(inflated_stream: &mut ByteStream) -> UnbundledFile {
+        let extension = inflated_stream.read_ulong();
+        let path = inflated_stream.read_ulong();
+        let has_data = inflated_stream.read_ulong();
+
+        let data;
+        if has_data > 0 {
+            let _flag = inflated_stream.read_uint();
+            let size = inflated_stream.read_uint();
+            let _unknown2 = inflated_stream.read_uint();
+            data = inflated_stream.read(size as usize);
+        } else {
+            data = vec![];
+        }
+        UnbundledFile {
+            extension: UnbundledFileCreator::lookup_extension_name(extension),
+            path: path,
+            data: data,
         }
     }
 
-    pub fn write_file(file_path: &str, unbundled_file: &UnbundledFile) {
-        let path = Path::new(file_path);
-        let mut file = File::create(&path).unwrap();
-        file.write_all(&unbundled_file.data).unwrap();
-    }
-
-    pub fn lookup_extension_name(hashed_name: u64) -> String {
+    fn lookup_extension_name(hashed_name: u64) -> String {
         return match hashed_name {
             0x00a3e6c59a2b9c6c => "timpani_master".to_string(),
             0x0d972bab10b40fd3 => "strings".to_string(),

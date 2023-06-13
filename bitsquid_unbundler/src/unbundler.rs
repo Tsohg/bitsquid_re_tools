@@ -2,13 +2,13 @@ use std::{fs, io};
 use std::io::Write;
 
 use flate2::write::ZlibDecoder;
+use re_core::{byte_stream::ByteStream, unbundled_file::UnbundledFile};
 
-use crate::unbundled_file::UnbundledFile;
-use crate::byte_stream::ByteStream;
+use crate::unbundled_file_creator::UnbundledFileCreator;
 
 #[derive(Debug)]
 pub enum UnbundlerError {
-    IOError,
+    IOError(io::Error),
     DecoderFinish,
     DecoderWriteAll,
 }
@@ -18,10 +18,10 @@ pub struct Unbundler {
 }
 
 impl<'a> Unbundler {
-    pub fn new(compressed_file_path: &'a str) -> Result<Unbundler, io::Error> {
+    pub fn new(compressed_file_path: &'a str) -> Result<Unbundler, UnbundlerError> {
         let file = match fs::read(compressed_file_path) {
             Ok(file) => file,
-            Err(e) => return Err(e),
+            Err(e) => return Err(UnbundlerError::IOError(e)),
         };
         Ok(Unbundler {
             compressed_stream: ByteStream::new(file),
@@ -43,7 +43,7 @@ impl<'a> Unbundler {
         let _file_names_and_extensions = inflated_stream.read((16 * file_count) as usize);
 
         for _i in 0..file_count {
-            let unbundled_file = UnbundledFile::new(&mut inflated_stream);
+            let unbundled_file = UnbundledFileCreator::create(&mut inflated_stream);
             unbundled_files.push(unbundled_file);
         }
 

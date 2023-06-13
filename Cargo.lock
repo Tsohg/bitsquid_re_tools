@@ -70,6 +70,7 @@ dependencies = [
  "bitsquid_unbundler",
  "clap",
  "luajit_decompiler",
+ "re_core",
 ]
 
 [[package]]
@@ -77,6 +78,7 @@ name = "bitsquid_unbundler"
 version = "1.1.0"
 dependencies = [
  "flate2",
+ "re_core",
  "registry",
 ]
 
@@ -253,6 +255,10 @@ checksum = "8f4f29d145265ec1c483c7c654450edde0bfe043d3938d6972630663356d9500"
 dependencies = [
  "proc-macro2",
 ]
+
+[[package]]
+name = "re_core"
+version = "0.1.0"
 
 [[package]]
 name = "registry"

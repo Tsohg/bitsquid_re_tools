@@ -1,15 +1,15 @@
 use std::{path::PathBuf, ffi::OsString, str::FromStr};
 
-use bitsquid_unbundler::unbundler_controller::UnbundlerAdapter;
 use clap::{arg, command, value_parser, ArgMatches};
 
+use bitsquid_unbundler::unbundler_controller::InputAdapter;
 
-pub struct ClaInput {
+pub struct Cla {
     matches: ArgMatches,
 }
 
-impl ClaInput {
-    pub fn new() -> ClaInput {
+impl Cla {
+    pub fn new() -> Cla {
         let matches = command!()
             .name("Bitsquid Reverse Engineering Tools")
             .version("1.0.0")
@@ -22,12 +22,12 @@ impl ClaInput {
             .arg(arg!(-o --output <OUTPUT> "Output may be a path to a file or a directory.")
                 .required(false).value_parser(value_parser!(OsString)))
             .get_matches();
-        ClaInput { matches: matches }
+        Cla { matches: matches }
     }
 }
 
-impl UnbundlerAdapter for ClaInput {
-    fn input(&self) -> Option<PathBuf> {
+impl InputAdapter for Cla {
+    fn input_dir(&self) -> Option<PathBuf> {
         match self.matches.get_one::<OsString>("input") {
             Some(path) => match PathBuf::from_str(path.to_str().unwrap()) {
                 Ok(pathbuf) => return Some(pathbuf),
@@ -37,10 +37,13 @@ impl UnbundlerAdapter for ClaInput {
         }  
     }
 
-    fn output(&self) -> Option<PathBuf> {
+    fn output_dir(&self) -> Option<PathBuf> {
         match self.matches.get_one::<OsString>("output") {
             Some(path) => match PathBuf::from_str(path.to_str().unwrap()) {
-                Ok(pathbuf) => Some(pathbuf),
+                Ok(mut pathbuf) => { 
+                    pathbuf.push("assets/");
+                    Some(pathbuf) 
+                },
                 Err(_) => None,
             },
             None => None,
