@@ -8,4 +8,4 @@ edition = "2021"
 [dependencies]
 flate2 = "1.0"
 registry = "1.2.3"
-re_core = { version = "0.1.0", path = "../re_core" }
+re_core = { version = "0.2.0", path = "../re_core" }

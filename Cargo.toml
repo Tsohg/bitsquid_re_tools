@@ -13,5 +13,5 @@ members = [
 [dependencies]
 bitsquid_unbundler = { version = "1.1.0", path = "bitsquid_unbundler" }
 luajit_decompiler = { version = "0.1.0", path = "luajit_decompiler" }
-re_core = { version = "0.1.0", path = "re_core" }
+re_core = { version = "0.2.0", path = "re_core" }
 clap = { version = "4.2.2", features = ["cargo"] }
