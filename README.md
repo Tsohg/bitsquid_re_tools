@@ -1,6 +1,6 @@
 # bitsquid_re_tools
 Reverse engineering toolchain for the bitsquid engine.
-Tools Roadmap:
+Tools / Development Roadmap:
 - [X] Asset Unbundler
 - [ ] Luajit Decompiler
 - [ ] .timpani_bank Extractor
@@ -9,6 +9,7 @@ Tools Roadmap:
 - [ ] Murmur32 Rainbow Table (Create a rainbow table by detouring the bitsquid engine's hashing function).
 - [ ] Directory and File Name Restorer (Using the rainbow table, reconstruct the file structure).
 - [ ] .dds to .png Conversion
+- [ ] An optional GUI for the toolchain
 
 # Usage
 
