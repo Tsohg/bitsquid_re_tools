@@ -20,4 +20,5 @@ where TOOL_NAME is the name of a supported tool in the toolchain.
 -t --tool <TOOL> Currently supported tools: bitsquid_unbundler
 -i --input <INPUT> Input may be a path to a file or directory. A default input may be substituted depending on the tool used.
 -o --output <OUTPUT> Output may be a path to a file or a directory. A default output may be substituted depending on the tool used. (Typically, the pwd).
+-d --dds "Unbundles texture files as dds files instead."
 ```
