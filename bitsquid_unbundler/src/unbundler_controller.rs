@@ -6,28 +6,34 @@ use re_core::{unbundled_file::UnbundledFile, unbundled_directory::UnbundledDirec
 use crate::unbundler::Unbundler;
 
 pub trait InputAdapter {
-    fn input_dir(&self) -> Option<PathBuf>;
+    fn input_options(&self) -> InputOptions;
     fn output_dir(&self) -> Option<PathBuf>;
+}
+
+pub struct InputOptions {
+    pub input_path: Option<PathBuf>,
+    pub dds_mode: bool,
 }
 
 pub trait OutputAdapter {
     fn output(&mut self, output_dir: &PathBuf, unbundled: Vec<UnbundledDirectory>);
 }
 
-
 pub struct UnbundlerController {
     input_dir: PathBuf,
     output_dir: PathBuf,
+    dds_mode: bool,
 }
 
 impl UnbundlerController {
     pub fn new(adapter: &impl InputAdapter) -> UnbundlerController {
         let input_dir;
-        match adapter.input_dir() {
+        let options = adapter.input_options();
+        match options.input_path {
             Some(path) => input_dir = path,
             None => input_dir = UnbundlerController::find_mww_bundles(),
         }
-        
+
         let output_dir;
         match adapter.output_dir() {
             Some(path) => output_dir = path,
@@ -36,7 +42,8 @@ impl UnbundlerController {
 
         UnbundlerController {
             input_dir,
-            output_dir
+            output_dir,
+            dds_mode: options.dds_mode
         }
     }
 
@@ -73,7 +80,7 @@ impl UnbundlerController {
         if !UnbundlerController::has_valid_extension(path) { return vec![]; }
 
         let input_path = path.to_str().unwrap();
-        let mut unbundler = Unbundler::new(input_path).unwrap(); //TODO: handle io::error
+        let mut unbundler = Unbundler::new(input_path, self.dds_mode).unwrap(); //TODO: handle io::error
 
         match unbundler.unbundle_file() {
             Ok(unbundled_files) => unbundled_files,
