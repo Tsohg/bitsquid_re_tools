@@ -1,24 +1,3 @@
-# Build
-Clone the repo.
-Open a command prompt in the repo directory. If you see the README you are in the right place.
-```
-cargo build --release
-```
-The executable should now be in the /target/ directory.
-
-# Usage
-```
-Usage: bitsquid_unbundler.exe [OPTIONS]
-
-Options:
-  -i, --indir <INPUT_DIRECTORY>    [Optional] The input directory containing the bitsquid compiled assets.
-                                        Defaults to searching the Steam directory for Magicka: Wizard Wars' data_win32_bundled directory.
-  -o, --outdir <OUTPUT_DIRECTORY>  [Optional] The output directory which the extracted files shall be written to.
-                                        Defaults to creating a directory in the present working directory of the executable for output.
-  -h, --help                       Print help
-  -V, --version                    Print version           Print version
-```
-
 # File Format of Bundles
 The file format of a bundle is a collection of zlib files. The first step is to uncompress the zlib files into its own file. The resulting file contains all the files which need to be split off into their own file. (Separated into Bundle Unpacking then File Unpacking).
 
