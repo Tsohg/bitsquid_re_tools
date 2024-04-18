@@ -1,4 +1,4 @@
-use re_core::{unbundled_file::UnbundledFile, byte_stream::ByteStream};
+use crate::{byte_stream::ByteStream, unbundled_file::UnbundledFile};
 
 pub struct UnbundledFileCreator {
     dds_mode: bool,
@@ -25,8 +25,8 @@ impl UnbundledFileCreator {
         
         UnbundledFile {
             extension: self.lookup_extension_name(extension),
-            path: path,
-            data: data,
+            path,
+            data,
         }
     }
 

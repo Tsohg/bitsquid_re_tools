@@ -2,8 +2,9 @@ use std::{fs, io};
 use std::io::Write;
 
 use flate2::write::ZlibDecoder;
-use re_core::{byte_stream::ByteStream, unbundled_file::UnbundledFile};
 
+use crate::byte_stream::ByteStream;
+use crate::unbundled_file::UnbundledFile;
 use crate::unbundled_file_creator::UnbundledFileCreator;
 
 #[derive(Debug)]
@@ -13,24 +14,23 @@ pub enum UnbundlerError {
     DecoderWriteAll,
 }
 
+//TODO: impl From for exceptions? see lumi msg.
 pub struct Unbundler {
     compressed_stream: ByteStream,
-    dds_mode: bool,
 }
 
 impl<'a> Unbundler {
-    pub fn new(compressed_file_path: &'a str, dds_mode: bool) -> Result<Unbundler, UnbundlerError> {
+    pub fn new(compressed_file_path: &'a str) -> Result<Unbundler, UnbundlerError> {
         let file = match fs::read(compressed_file_path) {
             Ok(file) => file,
             Err(e) => return Err(UnbundlerError::IOError(e)),
         };
         Ok(Unbundler {
             compressed_stream: ByteStream::new(file),
-            dds_mode
         })
     }
 
-    pub fn unbundle_file(&mut self) -> Result<Vec<UnbundledFile>, UnbundlerError> {
+    pub fn unbundle_file(&mut self, dds_mode: bool) -> Result<Vec<UnbundledFile>, UnbundlerError> {
         let mut unbundled_files: Vec<UnbundledFile> = vec![];
 
         let inflated_bundle = match self.inflate_bundle() {
@@ -44,7 +44,7 @@ impl<'a> Unbundler {
         let _checksum = inflated_stream.read(256);
         let _file_names_and_extensions = inflated_stream.read((16 * file_count) as usize);
 
-        let file_creator = UnbundledFileCreator::new(self.dds_mode);
+        let file_creator = UnbundledFileCreator::new(dds_mode);
 
         for _i in 0..file_count {
             let unbundled_file = file_creator.create(&mut inflated_stream);

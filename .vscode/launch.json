@@ -7,10 +7,11 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'bitsquid_re_tools'",
+            "name": "Debug tests of 'bitsquid_re_tools'",
             "cargo": {
                 "args": [
-                    "build",
+                    "test",
+                    "--no-run",
                     "--bin=bitsquid_re_tools",
                     "--package=bitsquid_re_tools"
                 ],
@@ -19,7 +20,7 @@
                     "kind": "bin"
                 }
             },
-            "args": ["-t bitsquid_unbundler"],
+            "args": [],
             "cwd": "${workspaceFolder}"
         }
     ]
