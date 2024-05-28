@@ -6,10 +6,10 @@ pub struct UnbundledDirectory {
 }
 
 impl UnbundledDirectory {
-    pub fn new(name: String, files: Vec<UnbundledFile>) -> UnbundledDirectory {
+    pub fn new(dir_name: String, files: Vec<UnbundledFile>) -> UnbundledDirectory {
         UnbundledDirectory {
-            dir_name: name,
-            files: files,
+            dir_name,
+            files,
         }
     }
 

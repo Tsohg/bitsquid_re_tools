@@ -14,7 +14,7 @@ pub enum UnbundlerError {
     IOError(io::Error),
     DecoderFinish,
     DecoderWriteAll,
-    Inflater,
+    Inflater(String),
     Extension,
 }
 
@@ -28,16 +28,6 @@ impl Unbundler {
         Unbundler {
             file_path,
             dds_mode,
-        }
-    }
-
-    fn has_valid_extension(path: &PathBuf) -> bool {      
-        match path.extension() {
-            Some(ext) => match ext.to_str().unwrap() {
-                "stream" | "ini" | "data" => false,
-                _ => true,
-            },
-            None => true,
         }
     }
     
@@ -66,6 +56,16 @@ impl Unbundler {
         Ok(unbundled_dirs)
     }
 
+    fn has_valid_extension(path: &PathBuf) -> bool {      
+        match path.extension() {
+            Some(ext) => match ext.to_str().unwrap() {
+                "stream" | "ini" | "data" => false,
+                _ => true,
+            },
+            None => true,
+        }
+    }
+
     fn parse_bundle(&self, file_name: &String, file_path: &String) -> Result<UnbundledDirectory, UnbundlerError> {
         let file = match fs::read(file_path) {
             Ok(file) => file,
@@ -74,69 +74,69 @@ impl Unbundler {
 
         let mut compressed_stream = ByteStream::new(file);
 
-        match self.inflate_file(&mut compressed_stream) {
+        match self.read_unbundled_files(&mut compressed_stream) {
             Ok(files) => Ok(UnbundledDirectory::new(String::from(file_name), files)),
-            Err(e) => { 
-                print!("Encountered an error unbundling file: {}\n{:?}", file_path, e);
-                return Err(UnbundlerError::Inflater);
-            },
+            Err(e) => Err(UnbundlerError::Inflater(format!("Error inflating: {}\n{:?}", file_path, e))),
         }
     }
 
-    pub fn inflate_file(&self, compressed_stream: &mut ByteStream) -> Result<Vec<UnbundledFile>, UnbundlerError> {
+    fn read_unbundled_files(&self, compressed_stream: &mut ByteStream) -> Result<Vec<UnbundledFile>, UnbundlerError> {
         let mut unbundled_files: Vec<UnbundledFile> = vec![];
 
-        let inflated_bundle = match self.inflate_bundle(compressed_stream) {
-            Ok(inflated_bundle) => inflated_bundle,
+        let mut inflated_stream = match self.inflate_stream(compressed_stream) {
+            Ok(inflated_stream) => inflated_stream,
             Err(e) => return Err(e),
         };
-
-        let mut inflated_stream = ByteStream::new(inflated_bundle);
 
         let file_count = inflated_stream.read_uint();
         let _checksum = inflated_stream.read(256);
         let _file_names_and_extensions = inflated_stream.read((16 * file_count) as usize);
 
         for _i in 0..file_count {          
-            let extension = inflated_stream.read_ulong();
-            let path = inflated_stream.read_ulong();
-            let has_data = inflated_stream.read_ulong();
-    
-            let data;
-            if has_data > 0 {
-                let _flag = inflated_stream.read_uint();
-                let size = inflated_stream.read_uint();
-                let _unknown2 = inflated_stream.read_uint();
-                data = inflated_stream.read(size as usize);
-            } else {
-                data = vec![];
-            }
-            
-            unbundled_files.push(UnbundledFile {
-                extension: Extensions::lookup(extension, self.dds_mode),
-                path,
-                data,
-            });
+            let unbundled_file = self.read_unbundled_file(&mut inflated_stream);
+            unbundled_files.push(unbundled_file);
         }
 
         Ok(unbundled_files)
     }
 
-    pub fn inflate_bundle(&self, compressed_stream: &mut ByteStream) -> Result<Vec<u8>, UnbundlerError> {
+    fn inflate_stream(&self, compressed_stream: &mut ByteStream) -> Result<ByteStream, UnbundlerError> {
         let _header = compressed_stream.read_uint();
         let _size = compressed_stream.read_uint();
         let _reserved = compressed_stream.read_uint();
 
-        let mut result: Vec<u8> = vec![];
+        let mut inflated: Vec<u8> = vec![];
 
         while compressed_stream.remaining_bytes() > 0 {
-            match self.append_block(compressed_stream, &mut result) {
+            match self.append_block(compressed_stream, &mut inflated) {
                 Ok(_) => {},
                 Err(e) => return Err(e),
             }
         }
 
-        Ok(result)
+        Ok(ByteStream::new(inflated))
+    }
+
+    fn read_unbundled_file(&self, inflated_stream: &mut ByteStream) -> UnbundledFile {
+        let extension = inflated_stream.read_ulong();
+        let path = inflated_stream.read_ulong();
+        let has_data = inflated_stream.read_ulong();
+
+        let data;
+        if has_data > 0 {
+            let _flag = inflated_stream.read_uint();
+            let size = inflated_stream.read_uint();
+            let _unknown2 = inflated_stream.read_uint();
+            data = inflated_stream.read(size as usize);
+        } else {
+            data = vec![];
+        }
+        
+        UnbundledFile {
+            extension: Extensions::lookup(extension, self.dds_mode),
+            path,
+            data,
+        }
     }
 
     fn append_block(&self, compressed_stream: &mut ByteStream, buffer: &mut Vec<u8>) -> Result<(), UnbundlerError> {
