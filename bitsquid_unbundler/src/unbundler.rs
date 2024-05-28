@@ -1,86 +1,87 @@
+use std::io::Write;
 use std::path::PathBuf;
 use std::{fs, io};
-use std::io::Write;
 
 use flate2::write::ZlibDecoder;
 
 use crate::byte_stream::ByteStream;
+use crate::extensions::Extensions;
 use crate::unbundled_directory::UnbundledDirectory;
 use crate::unbundled_file::UnbundledFile;
-use crate::extensions::Extensions;
-
-#[derive(Debug)]
-pub enum UnbundlerError {
-    IOError(io::Error),
-    DecoderFinish,
-    DecoderWriteAll,
-    Inflater(String),
-    Extension,
-}
 
 pub struct Unbundler {
-    file_path: PathBuf,
-    dds_mode: bool,
+    pub file_path: PathBuf,
+    pub dds_mode: bool,
 }
 
 impl Unbundler {
-    pub fn new(file_path: PathBuf, dds_mode: bool) -> Unbundler {
-        Unbundler {
-            file_path,
-            dds_mode,
-        }
-    }
-    
-    pub fn unbundle(&mut self) -> Result<Vec<UnbundledDirectory>, UnbundlerError>{
+    pub fn unbundle(&self) -> Result<Vec<UnbundledDirectory>, UnbundlerError> {
         let mut unbundled_dirs = vec![];
 
-        if !Unbundler::has_valid_extension(&self.file_path) { return Err(UnbundlerError::Extension) }
+        if !Unbundler::has_valid_extension(&self.file_path)? {
+            return Err(UnbundlerError::Extension);
+        }
 
         if self.file_path.is_file() {
-            let file_path = String::from(self.file_path.to_str().unwrap());
-            let file_name = String::from(self.file_path.file_name().unwrap().to_str().unwrap());
-            let unbundled = self.parse_bundle(&file_name, &file_path).unwrap();
+            let file_path = String::from(self.file_path.to_str().ok_or(UnbundlerError::NotUTF8)?);
+            let file_name = String::from(
+                self.file_path
+                    .file_name()
+                    .ok_or(UnbundlerError::NoFileName)?
+                    .to_str()
+                    .ok_or(UnbundlerError::NotUTF8)?,
+            );
+            let unbundled = self.parse_bundle(&file_name, &file_path)?;
             unbundled_dirs.push(unbundled);
             return Ok(unbundled_dirs);
         }
 
-        let read_dir = self.file_path.read_dir().unwrap();
+        let read_dir = self.file_path.read_dir()?;
 
         for entry in read_dir {
-            let file_path = String::from(entry.as_ref().unwrap().path().to_str().unwrap());
-            let file_name = String::from(entry.as_ref().unwrap().file_name().to_str().unwrap());
-            let unbundled = self.parse_bundle(&file_name, &file_path).unwrap();
-            unbundled_dirs.push(unbundled);
+            if let Some(file_path) = entry.as_ref()?.path().to_str() {
+                if let Some(file_name) = entry.as_ref()?.file_name().to_str() {
+                    let unbundled =
+                        self.parse_bundle(&String::from(file_name), &String::from(file_path))?;
+                    unbundled_dirs.push(unbundled);
+                }
+            }
         }
 
         Ok(unbundled_dirs)
     }
 
-    fn has_valid_extension(path: &PathBuf) -> bool {      
+    fn has_valid_extension(path: &PathBuf) -> Result<bool, UnbundlerError> {
         match path.extension() {
-            Some(ext) => match ext.to_str().unwrap() {
-                "stream" | "ini" | "data" => false,
-                _ => true,
+            Some(ext) => match ext.to_str().ok_or(UnbundlerError::NotUTF8)? {
+                "stream" | "ini" | "data" => Ok(false),
+                _ => Ok(true),
             },
-            None => true,
+            None => Ok(true),
         }
     }
 
-    fn parse_bundle(&self, file_name: &String, file_path: &String) -> Result<UnbundledDirectory, UnbundlerError> {
-        let file = match fs::read(file_path) {
-            Ok(file) => file,
-            Err(e) => return Err(UnbundlerError::IOError(e)),
-        };
-
+    fn parse_bundle(
+        &self,
+        file_name: &String,
+        file_path: &String,
+    ) -> Result<UnbundledDirectory, UnbundlerError> {
+        let file = fs::read(file_path)?;
         let mut compressed_stream = ByteStream::new(file);
 
         match self.read_unbundled_files(&mut compressed_stream) {
             Ok(files) => Ok(UnbundledDirectory::new(String::from(file_name), files)),
-            Err(e) => Err(UnbundlerError::Inflater(format!("Error inflating: {}\n{:?}", file_path, e))),
+            Err(e) => Err(UnbundlerError::Inflater(format!(
+                "Error inflating: {}\n{:?}",
+                file_path, e
+            ))),
         }
     }
 
-    fn read_unbundled_files(&self, compressed_stream: &mut ByteStream) -> Result<Vec<UnbundledFile>, UnbundlerError> {
+    fn read_unbundled_files(
+        &self,
+        compressed_stream: &mut ByteStream,
+    ) -> Result<Vec<UnbundledFile>, UnbundlerError> {
         let mut unbundled_files: Vec<UnbundledFile> = vec![];
 
         let mut inflated_stream = match self.inflate_stream(compressed_stream) {
@@ -92,7 +93,7 @@ impl Unbundler {
         let _checksum = inflated_stream.read(256);
         let _file_names_and_extensions = inflated_stream.read((16 * file_count) as usize);
 
-        for _i in 0..file_count {          
+        for _i in 0..file_count {
             let unbundled_file = self.read_unbundled_file(&mut inflated_stream);
             unbundled_files.push(unbundled_file);
         }
@@ -100,7 +101,10 @@ impl Unbundler {
         Ok(unbundled_files)
     }
 
-    fn inflate_stream(&self, compressed_stream: &mut ByteStream) -> Result<ByteStream, UnbundlerError> {
+    fn inflate_stream(
+        &self,
+        compressed_stream: &mut ByteStream,
+    ) -> Result<ByteStream, UnbundlerError> {
         let _header = compressed_stream.read_uint();
         let _size = compressed_stream.read_uint();
         let _reserved = compressed_stream.read_uint();
@@ -109,7 +113,7 @@ impl Unbundler {
 
         while compressed_stream.remaining_bytes() > 0 {
             match self.append_block(compressed_stream, &mut inflated) {
-                Ok(_) => {},
+                Ok(_) => {}
                 Err(e) => return Err(e),
             }
         }
@@ -131,7 +135,7 @@ impl Unbundler {
         } else {
             data = vec![];
         }
-        
+
         UnbundledFile {
             extension: Extensions::lookup(extension, self.dds_mode),
             path,
@@ -139,9 +143,13 @@ impl Unbundler {
         }
     }
 
-    fn append_block(&self, compressed_stream: &mut ByteStream, buffer: &mut Vec<u8>) -> Result<(), UnbundlerError> {
+    fn append_block(
+        &self,
+        compressed_stream: &mut ByteStream,
+        buffer: &mut Vec<u8>,
+    ) -> Result<(), UnbundlerError> {
         let len = compressed_stream.read_uint();
-        if len == (1<<16) {
+        if len == (1 << 16) {
             buffer.append(&mut compressed_stream.read(len as usize))
         } else {
             let mut block = match self.decompress_block(compressed_stream, len as usize) {
@@ -153,11 +161,15 @@ impl Unbundler {
         Ok(())
     }
 
-    fn decompress_block(&self, compressed_stream: &mut ByteStream, len: usize) -> Result<Vec<u8>, UnbundlerError> {
+    fn decompress_block(
+        &self,
+        compressed_stream: &mut ByteStream,
+        len: usize,
+    ) -> Result<Vec<u8>, UnbundlerError> {
         let mut decoder = ZlibDecoder::new(vec![]);
 
         match decoder.write_all(&compressed_stream.read(len as usize)) {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(_) => return Err(UnbundlerError::DecoderWriteAll),
         }
 
@@ -165,5 +177,28 @@ impl Unbundler {
             Ok(block) => Ok(block),
             Err(_) => Err(UnbundlerError::DecoderFinish),
         }
+    }
+}
+
+#[derive(Debug)]
+pub enum UnbundlerError {
+    IOError(String),
+    DecoderFinish,
+    DecoderWriteAll,
+    Inflater(String),
+    Extension,
+    NotUTF8,
+    NoFileName,
+}
+
+impl From<&io::Error> for UnbundlerError {
+    fn from(value: &io::Error) -> Self {
+        UnbundlerError::IOError(format!("{}", value))
+    }
+}
+
+impl From<io::Error> for UnbundlerError {
+    fn from(value: io::Error) -> Self {
+        UnbundlerError::IOError(format!("{}", value))
     }
 }

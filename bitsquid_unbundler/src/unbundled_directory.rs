@@ -7,10 +7,7 @@ pub struct UnbundledDirectory {
 
 impl UnbundledDirectory {
     pub fn new(dir_name: String, files: Vec<UnbundledFile>) -> UnbundledDirectory {
-        UnbundledDirectory {
-            dir_name,
-            files,
-        }
+        UnbundledDirectory { dir_name, files }
     }
 
     pub fn push(&mut self, file: UnbundledFile) {

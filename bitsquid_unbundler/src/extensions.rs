@@ -44,6 +44,6 @@ impl Extensions {
             0xfa4a8e091a91201e => "ivf".to_string(),
             0xfe73c7dcff8a7ca5 => "shading_environment".to_string(),
             _ => hashed_name.to_string(),
-        }
+        };
     }
 }

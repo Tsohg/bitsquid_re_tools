@@ -5,10 +5,7 @@ pub struct ByteStream {
 
 impl ByteStream {
     pub fn new(bytes: Vec<u8>) -> ByteStream {
-        ByteStream {
-            position: 0,
-            bytes,
-        }
+        ByteStream { position: 0, bytes }
     }
     pub fn read_byte(&mut self) -> u8 {
         self.position += 1;

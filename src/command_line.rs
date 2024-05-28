@@ -48,7 +48,11 @@ impl CommandLine {
             .expect("Failed to read winreg for steam.\n");
         let data_win32_path = r"\steamapps\common\MagickaWizardWars\data_win32_bundled";
         //TODO: don't unwrap. there's an edge case where they don't have mww installed through steam or otherwise.
-        let bundle_directory = String::from(format!("{}{}", steam_dir.value("InstallPath").unwrap().to_string(), data_win32_path));
+        let bundle_directory = String::from(format!(
+            "{}{}",
+            steam_dir.value("InstallPath").unwrap().to_string(),
+            data_win32_path
+        ));
         bundle_directory
     }
 }
@@ -63,13 +67,19 @@ impl Into<Unbundler> for CommandLine {
             None => input_path = CommandLine::find_mww_bundles(),
         }
 
-        Unbundler::new(PathBuf::from(input_path), dds_mode)
+        Unbundler {
+            file_path: PathBuf::from(input_path),
+            dds_mode,
+        }
     }
 }
 
 impl Into<FileWriter> for CommandLine {
     fn into(self) -> FileWriter {
-        let output_dir = self.matches.get_one::<String>("output").expect("todo: Into<FileWriter>");
+        let output_dir = self
+            .matches
+            .get_one::<String>("output")
+            .expect("todo: Into<FileWriter>");
         FileWriter::new(PathBuf::from(output_dir))
     }
 }
@@ -103,6 +113,8 @@ impl Into<Bootstrapper> for CommandLine {
 
 impl Clone for CommandLine {
     fn clone(&self) -> Self {
-        Self { matches: self.matches.clone() }
+        Self {
+            matches: self.matches.clone(),
+        }
     }
 }

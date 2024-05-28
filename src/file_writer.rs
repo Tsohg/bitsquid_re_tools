@@ -1,4 +1,4 @@
-use std::fs::{File, self};
+use std::fs::{self, File};
 use std::io::prelude::*;
 use std::path::PathBuf;
 
@@ -15,8 +15,8 @@ impl FileWriter {
     pub fn new(output_directory: PathBuf) -> FileWriter {
         FileWriter {
             output_directory,
-            count: 1, 
-            total: 0 ,
+            count: 1,
+            total: 0,
         }
     }
 
@@ -24,8 +24,8 @@ impl FileWriter {
         for file in unbundled_dir.files.iter() {
             let mut path = self.output_directory.clone();
             path.push(format!(r"{}\", unbundled_dir.dir_name));
-            
-            match fs::create_dir(&path) {  
+
+            match fs::create_dir(&path) {
                 Ok(_) => (),
                 Err(_) => (),
             }
@@ -38,7 +38,12 @@ impl FileWriter {
     pub fn write_file(&mut self, file_path: &PathBuf, unbundled_file: &UnbundledFile) {
         let mut file = File::create(file_path).unwrap();
         file.write_all(&unbundled_file.data).unwrap();
-        println!("[{}/{}] {}", self.count, self.total, file_path.file_name().unwrap().to_str().unwrap());
+        println!(
+            "[{}/{}] {}",
+            self.count,
+            self.total,
+            file_path.file_name().unwrap().to_str().unwrap()
+        );
         self.count += 1;
     }
 }

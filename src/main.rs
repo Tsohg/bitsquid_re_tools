@@ -1,6 +1,6 @@
+use bitsquid_unbundler::unbundler::Unbundler;
 use command_line::CommandLine;
 use file_writer::FileWriter;
-use bitsquid_unbundler::unbundler::Unbundler;
 
 use compiler_bootstrap::bootstrap::Bootstrapper;
 
@@ -14,7 +14,11 @@ mod file_writer;
 fn main() {
     let cmd = CommandLine::new();
 
-    let tool = cmd.matches.get_one::<String>("tool").expect("-t argument was not given.").clone();
+    let tool = cmd
+        .matches
+        .get_one::<String>("tool")
+        .expect("-t argument was not given.")
+        .clone();
 
     match tool.as_str() {
         "bitsquid_unbundler" => {
@@ -26,11 +30,13 @@ fn main() {
                 file_writer.write_files(&unbundled_dir);
             }
         }
-        "compiler_bootstrap" => { 
+        "compiler_bootstrap" => {
             let bootstrapper: &Bootstrapper = &cmd.into();
-            bootstrapper.compile().expect("An IO error has occurred during compilation."); 
-        },
+            bootstrapper
+                .compile()
+                .expect("An IO error has occurred during compilation.");
+        }
         "luajit_decompiler" => (), //soon^tm
-        _ => panic!("Unknown tool (-t). Please see the supported tools with the --help command.")
+        _ => panic!("Unknown tool (-t). Please see the supported tools with the --help command."),
     }
 }

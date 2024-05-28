@@ -1,4 +1,7 @@
-use std::{process::{Command, Output}, io};
+use std::{
+    io,
+    process::{Command, Output},
+};
 
 //bitsquid_win32_dev.exe -compile -source-dir MWW-master -data-dir MWW-dump -bundle-dir MWW-bundle
 pub struct Bootstrapper {
@@ -12,10 +15,14 @@ impl Bootstrapper {
     pub fn compile(&self) -> io::Result<Output> {
         let mut cmd = Command::new(&self.compiler_path);
         cmd.args([
-            "-compile", 
-            "-source-dir", &self.src_dir, 
-            "-data-dir", &self.data_dir, 
-            "-bundle-dir", &self.bundle_dir]);
+            "-compile",
+            "-source-dir",
+            &self.src_dir,
+            "-data-dir",
+            &self.data_dir,
+            "-bundle-dir",
+            &self.bundle_dir,
+        ]);
 
         println!("Executing: {:?}", cmd);
         cmd.output()

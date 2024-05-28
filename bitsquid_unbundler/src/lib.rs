@@ -1,5 +1,5 @@
-pub mod unbundler;
+mod byte_stream;
+mod extensions;
 pub mod unbundled_directory;
 pub mod unbundled_file;
-mod extensions;
-mod byte_stream;
+pub mod unbundler;
