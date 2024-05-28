@@ -1,7 +1,7 @@
 use command_line::CommandLine;
 use file_writer::FileWriter;
+use bitsquid_unbundler::unbundler::Unbundler;
 
-use bitsquid_unbundler::unbundler_controller::UnbundlerController;
 use compiler_bootstrap::bootstrap::Bootstrapper;
 
 extern crate bitsquid_unbundler;
@@ -13,21 +13,21 @@ mod file_writer;
 
 fn main() {
     let cmd = CommandLine::new();
-    let bootstrapper: &Bootstrapper = &cmd.into();
-    let unbundler: &UnbundlerController = &cmd.into();
-    let file_writer: &FileWriter = &cmd.into();
 
     let tool = cmd.matches.get_one::<String>("tool").expect("-t argument was not given.").clone();
 
     match tool.as_str() {
         "bitsquid_unbundler" => {
-            let unbundled = unbundler.unbundle();
+            let unbundler: &mut Unbundler = &mut cmd.clone().into();
+            let unbundled = unbundler.unbundle().unwrap();
+            let file_writer: &mut FileWriter = &mut cmd.clone().into();
 
             for unbundled_dir in unbundled {
                 file_writer.write_files(&unbundled_dir);
             }
         }
         "compiler_bootstrap" => { 
+            let bootstrapper: &Bootstrapper = &cmd.into();
             bootstrapper.compile().expect("An IO error has occurred during compilation."); 
         },
         "luajit_decompiler" => (), //soon^tm

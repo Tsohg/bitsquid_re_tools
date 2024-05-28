@@ -7,7 +7,7 @@ impl ByteStream {
     pub fn new(bytes: Vec<u8>) -> ByteStream {
         ByteStream {
             position: 0,
-            bytes: bytes,
+            bytes,
         }
     }
     pub fn read_byte(&mut self) -> u8 {

@@ -2,6 +2,9 @@ use std::fs::{File, self};
 use std::io::prelude::*;
 use std::path::PathBuf;
 
+use bitsquid_unbundler::unbundled_directory::UnbundledDirectory;
+use bitsquid_unbundler::unbundled_file::UnbundledFile;
+
 pub struct FileWriter {
     output_directory: PathBuf,
     count: usize,

@@ -1,10 +1,9 @@
-use std::{path::PathBuf, str::FromStr};
+use std::path::PathBuf;
 
+use bitsquid_unbundler::unbundler::Unbundler;
 use clap::{arg, command, value_parser, ArgMatches};
 use compiler_bootstrap::bootstrap::Bootstrapper;
 use registry::{Hive, Security};
-
-use bitsquid_unbundler::unbundler_controller::UnbundlerArgs;
 
 use crate::file_writer::FileWriter;
 
@@ -32,7 +31,7 @@ impl CommandLine {
             .arg(arg!(-c --compiler <COMPILER> "An executable bitsquid compiler. Some bitsquid game exes allow for the --compile arg to be used.")
                 .required(false).value_parser(value_parser!(String)))
 
-            .arg(arg!(-r --data_dir <DATA_DIR> "The -data-dir used by the compiler bootstrap tool.")
+            .arg(arg!(-r --data_dir <DATA_DIR> "The data directory which contains the bundles.")
                 .required(false).value_parser(value_parser!(String)))
 
             .arg(arg!(-d --dds ... "Unbundles texture files as dds files instead.")
@@ -42,38 +41,29 @@ impl CommandLine {
         CommandLine { matches }
     }
 
-    //TODO: move this somewhere else. like a file for finding env vars. also call it data_dir not bundles
-    fn find_mww_bundles() -> PathBuf {
+    //TODO: move this somewhere else. like a file for finding env vars.
+    fn find_mww_bundles() -> String {
         let steam_dir = Hive::LocalMachine
             .open(r"SOFTWARE\WOW6432Node\Valve\Steam", Security::Read)
             .expect("Failed to read winreg for steam.\n");
         let data_win32_path = r"\steamapps\common\MagickaWizardWars\data_win32_bundled";
+        //TODO: don't unwrap. there's an edge case where they don't have mww installed through steam or otherwise.
         let bundle_directory = String::from(format!("{}{}", steam_dir.value("InstallPath").unwrap().to_string(), data_win32_path));
-        PathBuf::from_str(&bundle_directory).unwrap() //safe for utf8 only.
+        bundle_directory
     }
 }
 
-impl UnbundlerArgs for CommandLine {
-    fn input_path(&self) -> PathBuf {
+impl Into<Unbundler> for CommandLine {
+    fn into(self) -> Unbundler {
+        let dds_mode = self.matches.get_count("dds") > 0;
         let input_path;
+
         match self.matches.get_one::<String>("input") {
-            Some(path) => match PathBuf::from_str(path) {
-                Ok(pathbuf) => input_path = pathbuf,
-                Err(_) => input_path = CommandLine::find_mww_bundles(),
-            },
+            Some(path) => input_path = String::from(path),
             None => input_path = CommandLine::find_mww_bundles(),
-        }  
-        input_path
-    }
+        }
 
-    fn dds_mode(&self) -> bool {
-        self.matches.get_count("dds") > 0
-    }
-}
-
-impl Into<UnbundlerArgs> for CommandLine {
-    fn into(self) -> UnbundlerArgs {
-        
+        Unbundler::new(PathBuf::from(input_path), dds_mode)
     }
 }
 
@@ -108,5 +98,11 @@ impl Into<Bootstrapper> for CommandLine {
             data_dir,
             bundle_dir,
         }
+    }
+}
+
+impl Clone for CommandLine {
+    fn clone(&self) -> Self {
+        Self { matches: self.matches.clone() }
     }
 }

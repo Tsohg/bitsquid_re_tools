@@ -1,36 +1,7 @@
-use crate::{byte_stream::ByteStream, unbundled_file::UnbundledFile};
+pub struct Extensions;
 
-pub struct UnbundledFileCreator {
-    dds_mode: bool,
-}
-impl UnbundledFileCreator {
-    pub fn new(dds_mode: bool) -> UnbundledFileCreator {
-        UnbundledFileCreator { dds_mode } 
-    }
-
-    pub fn create(&self, inflated_stream: &mut ByteStream) -> UnbundledFile {
-        let extension = inflated_stream.read_ulong();
-        let path = inflated_stream.read_ulong();
-        let has_data = inflated_stream.read_ulong();
-
-        let data;
-        if has_data > 0 {
-            let _flag = inflated_stream.read_uint();
-            let size = inflated_stream.read_uint();
-            let _unknown2 = inflated_stream.read_uint();
-            data = inflated_stream.read(size as usize);
-        } else {
-            data = vec![];
-        }
-        
-        UnbundledFile {
-            extension: self.lookup_extension_name(extension),
-            path,
-            data,
-        }
-    }
-
-    fn lookup_extension_name(&self, hashed_name: u64) -> String {
+impl Extensions {
+    pub fn lookup(hashed_name: u64, dds_mode: bool) -> String {
         return match hashed_name {
             0x00a3e6c59a2b9c6c => "timpani_master".to_string(),
             0x0d972bab10b40fd3 => "strings".to_string(),
@@ -59,8 +30,8 @@ impl UnbundledFileCreator {
             0xbf21403a3ab0bbb1 => "physics_properties".to_string(),
             0xcce8d5b5f5ae333f => "shader".to_string(),
 
-            0xcd4238c6a0c69e32 if self.dds_mode => "dds".to_string(),
-            0xcd4238c6a0c69e32 if !self.dds_mode => "texture".to_string(),
+            0xcd4238c6a0c69e32 if dds_mode => "dds".to_string(),
+            0xcd4238c6a0c69e32 if dds_mode => "texture".to_string(),
 
             0xd8b27864a97ffdd7 => "sound_environment".to_string(),
             0xdcfb9e18fff13984 => "animation_curves".to_string(),
