@@ -1,4 +1,4 @@
-use bitsquid_unbundler::unbundler::Unbundler;
+use bitsquid_unbundler::{unbundled_directory::UnbundledDirectory, unbundler::Unbundler};
 use command_line::CommandLine;
 use file_writer::FileWriter;
 
@@ -24,10 +24,11 @@ fn main() {
         "bitsquid_unbundler" => {
             let unbundler: &mut Unbundler = &mut cmd.clone().into();
             let unbundled = unbundler.unbundle().unwrap();
+            let total = get_total_files(&unbundled);
             let file_writer: &mut FileWriter = &mut cmd.clone().into();
 
             for unbundled_dir in unbundled {
-                file_writer.write_files(&unbundled_dir);
+                file_writer.write_files(&unbundled_dir, total);
             }
         }
         "compiler_bootstrap" => {
@@ -39,4 +40,8 @@ fn main() {
         "luajit_decompiler" => (), //soon^tm
         _ => panic!("Unknown tool (-t). Please see the supported tools with the --help command."),
     }
+}
+
+fn get_total_files(unbundled: &Vec<UnbundledDirectory>) -> usize {
+    unbundled.iter().fold(0, |sum, val| sum + val.files.len())
 }

@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{env, path::PathBuf};
 
 use bitsquid_unbundler::unbundler::Unbundler;
 use clap::{arg, command, value_parser, ArgMatches};
@@ -76,11 +76,13 @@ impl Into<Unbundler> for CommandLine {
 
 impl Into<FileWriter> for CommandLine {
     fn into(self) -> FileWriter {
-        let output_dir = self
-            .matches
-            .get_one::<String>("output")
-            .expect("todo: Into<FileWriter>");
-        FileWriter::new(PathBuf::from(output_dir))
+        if let Some(output_dir) = self.matches.get_one::<String>("output") {
+            FileWriter::new(PathBuf::from(output_dir))
+        } else {
+            FileWriter::new(env::current_dir().expect(
+                "Attempted to default to current working directory for an output directory since no -o option was provided,
+                but either there is a lack of read permissions to the current directory or the current working directory does not exist."))
+        }
     }
 }
 

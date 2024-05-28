@@ -31,7 +31,7 @@ impl Extensions {
             0xcce8d5b5f5ae333f => "shader".to_string(),
 
             0xcd4238c6a0c69e32 if dds_mode => "dds".to_string(),
-            0xcd4238c6a0c69e32 if dds_mode => "texture".to_string(),
+            0xcd4238c6a0c69e32 if !dds_mode => "texture".to_string(),
 
             0xd8b27864a97ffdd7 => "sound_environment".to_string(),
             0xdcfb9e18fff13984 => "animation_curves".to_string(),

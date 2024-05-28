@@ -18,11 +18,13 @@ impl Unbundler {
     pub fn unbundle(&self) -> Result<Vec<UnbundledDirectory>, UnbundlerError> {
         let mut unbundled_dirs = vec![];
 
-        if !Unbundler::has_valid_extension(&self.file_path)? {
-            return Err(UnbundlerError::Extension);
-        }
-
         if self.file_path.is_file() {
+            if !Unbundler::has_valid_extension(&self.file_path)? {
+                return Err(UnbundlerError::Extension(
+                    format!("Attempted to unbundle a file which has an invalid extension. Do not unbundle files with extensions: .ini, .stream, or .data"
+                )));
+            }
+
             let file_path = String::from(self.file_path.to_str().ok_or(UnbundlerError::NotUTF8)?);
             let file_name = String::from(
                 self.file_path
@@ -39,6 +41,14 @@ impl Unbundler {
         let read_dir = self.file_path.read_dir()?;
 
         for entry in read_dir {
+            if !Unbundler::has_valid_extension(&entry.as_ref()?.path())? {
+                print!(
+                    "Skipping file with invalid extension: {:?}",
+                    &entry.as_ref()?.path().to_str(),
+                );
+                continue;
+            }
+
             if let Some(file_path) = entry.as_ref()?.path().to_str() {
                 if let Some(file_name) = entry.as_ref()?.file_name().to_str() {
                     let unbundled =
@@ -68,7 +78,6 @@ impl Unbundler {
     ) -> Result<UnbundledDirectory, UnbundlerError> {
         let file = fs::read(file_path)?;
         let mut compressed_stream = ByteStream::new(file);
-
         match self.read_unbundled_files(&mut compressed_stream) {
             Ok(files) => Ok(UnbundledDirectory::new(String::from(file_name), files)),
             Err(e) => Err(UnbundlerError::Inflater(format!(
@@ -149,6 +158,7 @@ impl Unbundler {
         buffer: &mut Vec<u8>,
     ) -> Result<(), UnbundlerError> {
         let len = compressed_stream.read_uint();
+
         if len == (1 << 16) {
             buffer.append(&mut compressed_stream.read(len as usize))
         } else {
@@ -158,6 +168,7 @@ impl Unbundler {
             };
             buffer.append(&mut block);
         }
+
         Ok(())
     }
 
@@ -186,7 +197,7 @@ pub enum UnbundlerError {
     DecoderFinish,
     DecoderWriteAll,
     Inflater(String),
-    Extension,
+    Extension(String),
     NotUTF8,
     NoFileName,
 }
